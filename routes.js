@@ -38,7 +38,7 @@ class Framework {
 
   // Render the current route
   renderCurrentRoute() {
-    const path = window.location.hash.slice(1) || "/";
+    const path = window.location.pathname ;
     const ComponentClass = this.routes[path] || NotFoundComponent;
     const component = new ComponentClass(this); // Pass framework instance to component
     const newVTree = component.render(); // Get Virtual DOM
@@ -56,8 +56,7 @@ class Framework {
 
   start() {
     const navigateTo = () => {
-      console.log("Current path:", window.location.hash);
-      const path = window.location.hash.slice(1) || "/";
+      const path = window.location.hash.slice(1) || window.location.pathname
       history.pushState(null, "", "" + path);
       this.renderCurrentRoute();
     };
