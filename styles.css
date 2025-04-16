@@ -1,0 +1,24 @@
+#app {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.header {
+    width: 400px;
+    border: 1px solid red;
+    padding: 2px;
+    display: flex;
+    justify-content: center;
+}
+
+.main {
+    width: 400px;
+    border: 1px solid red;
+    padding: 2px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}

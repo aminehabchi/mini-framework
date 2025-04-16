@@ -1,5 +1,3 @@
-const vdom = null;
-
 const miniFramwork = {
   _state: {},
   _oldVDom: undefined,
@@ -14,12 +12,16 @@ const miniFramwork = {
   },
 
   render: (vdom) => {
+
     if (typeof vdom == "string") {
       return document.createTextNode(vdom);
     }
 
     const ele = document.createElement(vdom.tag);
+
     for (let k in vdom.props) {
+
+
       if (k.startsWith("on")) {
         ele[k] = vdom.props[k];
       } else {
@@ -27,7 +29,8 @@ const miniFramwork = {
       }
     }
 
-    vdom.children.forEach((child) =>
+
+    vdom.children?.forEach((child) =>
       ele.appendChild(miniFramwork.render(child))
     );
 
@@ -36,67 +39,70 @@ const miniFramwork = {
 
   setState(newState) {
     this._state = { ...this._state, ...newState };
-  },
-
-  dif(oldVDom, newVDom, parent) {
-    if (typeof oldVDom !== typeof newVDom) {
-      parent.appendChild(this.render(newVDom), parent.firstChild);
-      return;
-    }
-
-    if (typeof oldVDom === "string") {
-      if (oldVDom !== newVDom) {
-        parent.replaceChild(this.render(newVDom), parent.firstChild);
-      }
-      return;
-    }
-
-    if (oldVDom.tag !== newVDom.tag) {
-      parent.replaceChild(this.render(newVDom), parent.firstChild);
-      return;
-    }
-
-    const realDom = parent.firstChild;
-
-    // Update props
-    const allProps = { ...oldVDom.props, ...newVDom.props };
-    for (let prop in allProps) {
-      const oldVal = oldVDom.props[prop];
-      const newVal = newVDom.props[prop];
-
-      if (newVal === undefined) {
-        realDom.removeAttribute(prop);
-      } else if (oldVal !== newVal) {
-        realDom.setAttribute(prop, newVal);
-      }
-    }
-
-    // Diff children
-    const max = Math.max(oldVDom.children.length, newVDom.children.length);
-    for (let i = 0; i < max; i++) {
-      const oldChild = oldVDom.children[i];
-      const newChild = newVDom.children[i];
-      const realDomChild = realDom.childNodes[i];
-
-      if (!oldChild) {
-        realDom.appendChild(this.render(newChild));
-      } else if (!newChild) {
-        realDom.removeChild(realDomChild);
-      } else {
-        this.dif(oldChild, newChild, realDomChild.parentNode);
-      }
-    }
+    this.start()
   },
 
   getState(name) {
     return this._state[name];
   },
 
+
+  dif(oldVDom, newVDom, parent, current) {
+    console.log(oldVDom, newVDom, parent, current);
+
+    if (typeof oldVDom !== typeof newVDom) {
+      parent.innerHTML = ''
+      parent.appendChild(this.render(newVDom));
+      return;
+    }
+
+    if (typeof oldVDom === "string") {
+      if (oldVDom !== newVDom) {
+        parent.innerHTML = ''
+        parent.appendChild(this.render(newVDom));
+      }
+      return;
+    }
+
+    if (oldVDom.tag !== newVDom.tag) {
+      parent.innerHTML = ''
+      parent.appendChild(this.render(newVDom));
+      return;
+    }
+
+  
+
+    
+    const max = Math.max(oldVDom.children.length, newVDom.children.length);
+
+    for (let i = 0; i < max; i++) {
+      const oldChild = oldVDom.children[i];
+      const newChild = newVDom.children[i];
+
+      if (!oldChild) {
+        current.appendChild(this.render(newChild));
+      } else if (!newChild) {
+        parent.removeChild(current.children[i]);
+      } else {
+        //  if (current && current.children.length > 0) {
+        this.dif(oldChild, newChild, current, current.children[i]);
+        //} 
+      }
+    }
+  },
+
+
   renderThisPath(path) {
     const component = this.routes[path];
-    let a = new component();
+    const newVDom = component.getVDom(); // only call once
+    this.dif(this._oldVDom, newVDom, this.App, this.App.firstChild);
 
-    this.dif({}, component.getVDom(), this.App);
+    this._oldVDom = newVDom;
+
+    // Lifecycle hook
+    if (typeof component.onMount === "function") {
+      component.onMount();
+    }
   },
 
   start() {
@@ -106,50 +112,59 @@ const miniFramwork = {
 };
 
 export class Component {
-  constructor(props = {}) {
-    this.props = props;
-    this.state = {};
-    this.root = null; // DOM root of this component
+  constructor(Route, FrameWork, Props, State = {}) {
+    this.props = Props;
+    this.state = State;
+    this.Route = Route;
+    this.frameWork = FrameWork;
   }
 
   setState(name, value) {
     this.state[name] = value;
-    this.update(); // trigger re-render
+    this.onUpdate(); // trigger re-render
   }
 
-  // Called when component is mounted to DOM
-  onMount() {}
+  getState(name) {
+    return this.state[name];
+  }
 
   // Called when component updates
-  onUpdate() {}
+  onUpdate() {
+    const newVDom = this.getVDom();
+    this.frameWork.dif(this.frameWork._oldVDom, newVDom, this.frameWork.App, this.frameWork.App.firstChild);
+
+    this.frameWork._oldVDom = newVDom;
+  }
+  // Called when component is mounted to DOM
+  onMount() { }
 
   // Called when component is destroyed
-  onDestroy() {}
+  onDestroy() { }
 
-  // Responsible for returning HTML/DOM
-  render() {
-    throw new Error("Render method should be implemented by subclass");
-  }
 
   // Mount the component to a parent element
-  mount(parent) {
-    this.root = this.render();
-    parent.appendChild(this.root);
-    this.onMount();
-  }
+  // mount(parent) {
+  //   this.root = this.render();
+  //   parent.appendChild(this.root);
+  //   this.onMount();
+  // }
 
-  // Destroy component
-  destroy() {
-    this.onDestroy();
-    if (this.root) {
-      this.root.remove();
-    }
+  // // Destroy component
+  // destroy() {
+  //   this.onDestroy();
+  //   if (this.root) {
+  //     this.root.remove();
+  //   }
+  // }
+  getVDom() {
+
+    return CreateVElement("h1", {}, "Default")
   }
 }
 
 export default miniFramwork;
 
-export function CreateVElement(tag, props, ...children) {
+export function CreateVElement(tag, props = {}, ...children) {
   return {
     tag,
     props,
