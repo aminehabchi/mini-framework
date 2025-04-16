@@ -48,7 +48,6 @@ const miniFramwork = {
 
 
   dif(oldVDom, newVDom, parent, current) {
-    console.log(oldVDom, newVDom, parent, current);
 
     if (typeof oldVDom !== typeof newVDom) {
       parent.innerHTML = ''
@@ -70,10 +69,29 @@ const miniFramwork = {
       return;
     }
 
-  
 
-    
+
+    const oldProps = oldVDom.props || {};
+    const newProps = newVDom.props || {};
+    for (let key in { ...oldProps, ...newProps }) {
+
+      const oldVal = oldProps[key];
+      const newVal = newProps[key];
+      if (oldVal !== newVal) {
+        if (key.startsWith("on") && typeof newVal === "function") {
+          current[key.toLowerCase()] = newVal;
+        } else if (newVal == null || newVal === undefined) {
+          current.removeAttribute(key);
+        } else {
+          current.setAttribute(key, newVal);
+        }
+      }
+    }
+
+
+
     const max = Math.max(oldVDom.children.length, newVDom.children.length);
+
 
     for (let i = 0; i < max; i++) {
       const oldChild = oldVDom.children[i];
@@ -82,13 +100,22 @@ const miniFramwork = {
       if (!oldChild) {
         current.appendChild(this.render(newChild));
       } else if (!newChild) {
-        parent.removeChild(current.children[i]);
+        current.removeChild(current.children[i]);
       } else {
-        //  if (current && current.children.length > 0) {
+
+
+
+        if (oldChild.props?.key != newChild.props?.key) {
+          current.removeChild(current.children[i])
+          return
+        }
+
         this.dif(oldChild, newChild, current, current.children[i]);
-        //} 
+  
       }
     }
+
+
   },
 
 
