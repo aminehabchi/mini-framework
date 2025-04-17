@@ -100,18 +100,18 @@ const miniFramwork = {
       if (!oldChild) {
         current.appendChild(this.render(newChild));
       } else if (!newChild) {
-        current.removeChild(current.children[i]);
+        if (current?.children[i]) {
+          current.removeChild(current?.children[i]);
+        }
       } else {
-
-
 
         if (oldChild.props?.key != newChild.props?.key) {
           current.removeChild(current.children[i])
           return
         }
 
-        this.dif(oldChild, newChild, current, current.children[i]);
-  
+        this.dif(oldChild, newChild, current, current?.children[i]);
+
       }
     }
 
@@ -120,6 +120,8 @@ const miniFramwork = {
 
 
   renderThisPath(path) {
+    window.history.pushState({}, '', path);
+
     const component = this.routes[path];
     const newVDom = component.getVDom(); // only call once
     this.dif(this._oldVDom, newVDom, this.App, this.App.firstChild);
